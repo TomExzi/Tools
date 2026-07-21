@@ -48,21 +48,21 @@ export function SignatureModal({ onCancel, onConfirm }: Props) {
   return (
     <div className="modal-backdrop" onMouseDown={onCancel}>
       <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
-        <h2>Dessinez votre signature</h2>
+        <h2>Draw your signature</h2>
         <canvas ref={canvasRef} className="signature-canvas" />
         <div className="modal-actions">
           <button type="button" onClick={handleClear} className="btn-ghost">
-            Effacer
+            Clear
           </button>
           <div className="spacer" />
           <button type="button" onClick={onCancel} className="btn-ghost">
-            Annuler
+            Cancel
           </button>
           <button type="button" onClick={handleConfirm} className="btn-primary">
-            Valider
+            Confirm
           </button>
         </div>
-        <p className="hint">Après validation, cliquez sur la page pour la placer.</p>
+        <p className="hint">After confirming, click on the page to place it.</p>
       </div>
     </div>
   );

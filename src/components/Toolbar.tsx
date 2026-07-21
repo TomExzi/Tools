@@ -24,7 +24,7 @@ export function Toolbar({
       <div className="toolbar-group">
         <strong className="brand">PDF Editor</strong>
         <button type="button" onClick={onOpenFile} className="btn">
-          Ouvrir un PDF…
+          Open PDF…
         </button>
       </div>
 
@@ -35,7 +35,7 @@ export function Toolbar({
           onClick={() => onToolChange('select')}
           disabled={!hasDocument}
         >
-          Sélection
+          Select
         </button>
         <button
           type="button"
@@ -43,7 +43,7 @@ export function Toolbar({
           onClick={() => onToolChange('text')}
           disabled={!hasDocument}
         >
-          Texte
+          Text
         </button>
         <button
           type="button"
@@ -62,7 +62,7 @@ export function Toolbar({
           onClick={onExport}
           disabled={!hasDocument || exporting}
         >
-          {exporting ? 'Export…' : 'Exporter le PDF'}
+          {exporting ? 'Exporting…' : 'Export PDF'}
         </button>
       </div>
     </header>

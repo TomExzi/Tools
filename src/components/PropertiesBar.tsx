@@ -11,13 +11,13 @@ export function PropertiesBar({ annotation, onUpdate, onDelete }: Props) {
   return (
     <div className="props-bar">
       <span className="props-label">
-        {annotation.type === 'text' ? 'Texte' : 'Signature'}
+        {annotation.type === 'text' ? 'Text' : 'Signature'}
       </span>
 
       {annotation.type === 'text' && (
         <>
           <label className="props-field">
-            Couleur
+            Color
             <input
               type="color"
               value={annotation.color}
@@ -25,7 +25,7 @@ export function PropertiesBar({ annotation, onUpdate, onDelete }: Props) {
             />
           </label>
           <label className="props-field">
-            Taille
+            Size
             <input
               type="number"
               min={6}
@@ -43,9 +43,9 @@ export function PropertiesBar({ annotation, onUpdate, onDelete }: Props) {
       )}
 
       <div className="spacer" />
-      <span className="props-hint">Ctrl+C / Ctrl+V pour copier-coller</span>
+      <span className="props-hint">Scroll to resize · Ctrl+C / Ctrl+V to copy-paste</span>
       <button type="button" className="btn-danger" onClick={onDelete}>
-        Supprimer
+        Delete
       </button>
     </div>
   );

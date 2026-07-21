@@ -13,6 +13,11 @@ import type { Annotation, ToolId } from '../pdf/types';
 import { pointsToScreen, screenToPoints } from '../pdf/coords';
 import { TextEditor } from './TextEditor';
 
+const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
+/** Facteur de redimensionnement multiplicatif à partir d'un delta de molette. */
+const wheelFactor = (deltaY: number) => Math.exp(-deltaY * 0.001);
+
 interface Props {
   page: PdfPage;
   pageIndex: number;
@@ -183,6 +188,14 @@ export function PdfPageView({
                       fontSize: Math.max(6, ann.fontSize * scale),
                     });
                   }}
+                  onWheel={(e) => {
+                    // Molette au-dessus d'une annotation sélectionnée = redimensionner.
+                    if (ann.id !== selectedId) return;
+                    e.evt.preventDefault();
+                    onUpdate(ann.id, {
+                      fontSize: clamp(ann.fontSize * wheelFactor(e.evt.deltaY), 6, 400),
+                    });
+                  }}
                   {...commonDrag}
                 />
               );
@@ -192,6 +205,7 @@ export function PdfPageView({
                 key={ann.id}
                 ann={ann}
                 displayScale={displayScale}
+                selected={ann.id === selectedId}
                 onUpdate={onUpdate}
                 {...commonDrag}
               />
@@ -231,6 +245,7 @@ export function PdfPageView({
 function ImageNode({
   ann,
   displayScale,
+  selected,
   draggable,
   onUpdate,
   onClick,
@@ -239,6 +254,7 @@ function ImageNode({
 }: {
   ann: Extract<Annotation, { type: 'image' }>;
   displayScale: number;
+  selected: boolean;
   draggable: boolean;
   onUpdate: (id: string, patch: Partial<Annotation>) => void;
   onClick: () => void;
@@ -259,6 +275,14 @@ function ImageNode({
       onClick={onClick}
       onTap={onTap}
       onDragEnd={onDragEnd}
+      onWheel={(e) => {
+        // Molette au-dessus d'une signature sélectionnée = redimensionner (ratio conservé).
+        if (!selected) return;
+        e.evt.preventDefault();
+        const f = wheelFactor(e.evt.deltaY);
+        const newWidth = clamp(ann.width * f, 8, 3000);
+        onUpdate(ann.id, { width: newWidth, height: ann.height * (newWidth / ann.width) });
+      }}
       onTransformEnd={(e) => {
         const node = e.target;
         const sx = node.scaleX();

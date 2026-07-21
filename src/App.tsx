@@ -60,7 +60,7 @@ export default function App() {
     setAnnotations([]);
     setSelectedId(null);
     setTool('select');
-    setFileName(file.name.replace(/\.pdf$/i, '') + '-edité.pdf');
+    setFileName(file.name.replace(/\.pdf$/i, '') + '-edited.pdf');
   }
 
   const handlePlace = useCallback(
@@ -188,7 +188,7 @@ export default function App() {
       downloadBlob(blob, fileName);
     } catch (err) {
       console.error(err);
-      alert("Échec de l'export du PDF. Voir la console pour le détail.");
+      alert('PDF export failed. See the console for details.');
     } finally {
       setExporting(false);
     }
@@ -231,15 +231,15 @@ export default function App() {
       )}
 
       {pendingSignature && (
-        <div className="banner">Signature prête — cliquez sur la page pour la placer.</div>
+        <div className="banner">Signature ready — click on the page to place it.</div>
       )}
 
       <main className="canvas-area">
         {!doc && (
           <div className="empty-state">
-            <p>Ouvrez un PDF pour commencer.</p>
+            <p>Open a PDF to get started.</p>
             <button type="button" className="btn-primary" onClick={openFileDialog}>
-              Ouvrir un PDF…
+              Open PDF…
             </button>
           </div>
         )}
