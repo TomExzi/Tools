@@ -6,8 +6,10 @@
 
 - Ouvrir un PDF local et le visualiser (rendu via pdf.js)
 - Ajouter du **texte** en édition directe sur la page (voir ce qu'on tape, corriger, double-clic pour rééditer)
+- Choisir la **couleur** et la **taille** du texte
 - Ajouter une **signature** dessinée à la souris/au doigt
-- Déplacer et supprimer les annotations
+- Déplacer, **redimensionner** (poignées) et supprimer les annotations
+- **Copier / coller / dupliquer** (Ctrl+C, Ctrl+V, Ctrl+D)
 - **Exporter** un nouveau PDF avec les annotations aplaties (pdf-lib)
 
 ## Stack
@@ -33,4 +35,4 @@ Les annotations sont stockées en **points PDF**, origine haut-gauche, Y vers le
 
 ## À venir
 
-Redimensionnement des annotations, choix taille/couleur du texte, undo/redo, manipulation de pages (fusion/rotation/split), remplissage de formulaires AcroForm.
+Undo/redo, manipulation de pages (fusion/rotation/split), remplissage de formulaires AcroForm, coller une image depuis le presse-papier système.

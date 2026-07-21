@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Stage, Layer, Text as KonvaText, Image as KonvaImage, Rect } from 'react-konva';
+import {
+  Stage,
+  Layer,
+  Text as KonvaText,
+  Image as KonvaImage,
+  Rect,
+  Transformer,
+} from 'react-konva';
 import type Konva from 'konva';
 import type { PdfPage } from '../pdf/pdfjs';
 import type { Annotation, ToolId } from '../pdf/types';
@@ -47,9 +54,22 @@ export function PdfPageView({
   onCommitText,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const layerRef = useRef<Konva.Layer>(null);
+  const trRef = useRef<Konva.Transformer>(null);
   const viewport = page.getViewport({ scale: displayScale });
   const width = Math.floor(viewport.width);
   const height = Math.floor(viewport.height);
+
+  // Attache les poignées de redimensionnement au nœud sélectionné de CETTE page.
+  useEffect(() => {
+    const tr = trRef.current;
+    const layer = layerRef.current;
+    if (!tr || !layer) return;
+    const node =
+      selectedId && selectedId !== editingId ? layer.findOne(`#${selectedId}`) : null;
+    tr.nodes(node ? [node] : []);
+    tr.getLayer()?.batchDraw();
+  }, [selectedId, editingId, annotations, displayScale]);
 
   // Rendu de la page dans le canvas via pdf.js.
   useEffect(() => {
@@ -118,12 +138,11 @@ export function PdfPageView({
         style={{ cursor }}
         onMouseDown={handleStageMouseDown}
       >
-        <Layer>
+        <Layer ref={layerRef}>
           {/* Rectangle transparent qui capte les clics de placement. */}
           <Rect name="page-bg" x={0} y={0} width={width} height={height} />
 
           {annotations.map((ann) => {
-            const isSelected = ann.id === selectedId;
             const draggable = tool === 'select';
             const commonDrag = {
               draggable,
@@ -143,6 +162,7 @@ export function PdfPageView({
               return (
                 <KonvaText
                   key={ann.id}
+                  id={ann.id}
                   x={pointsToScreen(ann.x, displayScale)}
                   y={pointsToScreen(ann.y, displayScale)}
                   text={ann.text}
@@ -150,10 +170,19 @@ export function PdfPageView({
                   lineHeight={1.2}
                   fontFamily="Helvetica, Arial, sans-serif"
                   fill={ann.color}
-                  stroke={isSelected ? '#2563eb' : undefined}
-                  strokeWidth={isSelected ? 0.5 : 0}
                   onDblClick={() => onStartEdit(ann.id)}
                   onDblTap={() => onStartEdit(ann.id)}
+                  onTransformEnd={(e) => {
+                    const node = e.target;
+                    const scale = node.scaleX();
+                    node.scaleX(1);
+                    node.scaleY(1);
+                    onUpdate(ann.id, {
+                      x: screenToPoints(node.x(), displayScale),
+                      y: screenToPoints(node.y(), displayScale),
+                      fontSize: Math.max(6, ann.fontSize * scale),
+                    });
+                  }}
                   {...commonDrag}
                 />
               );
@@ -163,11 +192,21 @@ export function PdfPageView({
                 key={ann.id}
                 ann={ann}
                 displayScale={displayScale}
-                selected={isSelected}
+                onUpdate={onUpdate}
                 {...commonDrag}
               />
             );
           })}
+
+          <Transformer
+            ref={trRef}
+            rotateEnabled={false}
+            keepRatio
+            enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
+            boundBoxFunc={(oldBox, newBox) =>
+              newBox.width < 10 || newBox.height < 10 ? oldBox : newBox
+            }
+          />
         </Layer>
       </Stage>
 
@@ -192,16 +231,16 @@ export function PdfPageView({
 function ImageNode({
   ann,
   displayScale,
-  selected,
   draggable,
+  onUpdate,
   onClick,
   onTap,
   onDragEnd,
 }: {
   ann: Extract<Annotation, { type: 'image' }>;
   displayScale: number;
-  selected: boolean;
   draggable: boolean;
+  onUpdate: (id: string, patch: Partial<Annotation>) => void;
   onClick: () => void;
   onTap: () => void;
   onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => void;
@@ -210,17 +249,29 @@ function ImageNode({
   if (!img) return null;
   return (
     <KonvaImage
+      id={ann.id}
       image={img}
       x={pointsToScreen(ann.x, displayScale)}
       y={pointsToScreen(ann.y, displayScale)}
       width={pointsToScreen(ann.width, displayScale)}
       height={pointsToScreen(ann.height, displayScale)}
-      stroke={selected ? '#2563eb' : undefined}
-      strokeWidth={selected ? 1 : 0}
       draggable={draggable}
       onClick={onClick}
       onTap={onTap}
       onDragEnd={onDragEnd}
+      onTransformEnd={(e) => {
+        const node = e.target;
+        const sx = node.scaleX();
+        const sy = node.scaleY();
+        node.scaleX(1);
+        node.scaleY(1);
+        onUpdate(ann.id, {
+          x: screenToPoints(node.x(), displayScale),
+          y: screenToPoints(node.y(), displayScale),
+          width: screenToPoints(node.width() * sx, displayScale),
+          height: screenToPoints(node.height() * sy, displayScale),
+        });
+      }}
     />
   );
 }

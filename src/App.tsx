@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Toolbar } from './components/Toolbar';
 import { PdfPageView } from './components/PdfPageView';
 import { SignatureModal } from './components/SignatureModal';
+import { PropertiesBar } from './components/PropertiesBar';
 import { loadPdfDocument, type PdfDocument, type PdfPage } from './pdf/pdfjs';
 import type { Annotation, ToolId } from './pdf/types';
 import { newId } from './pdf/types';
@@ -30,6 +31,7 @@ export default function App() {
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [pendingSignature, setPendingSignature] = useState<PendingSignature | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [clipboard, setClipboard] = useState<Annotation | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -128,19 +130,55 @@ export default function App() {
     }
   }, []);
 
-  // Suppression de l'annotation sélectionnée avec Suppr/Backspace.
+  const handleDelete = useCallback(() => {
+    setSelectedId((id) => {
+      if (id) setAnnotations((prev) => prev.filter((a) => a.id !== id));
+      return null;
+    });
+  }, []);
+
+  // Duplique une annotation (nouvel id, léger décalage) et la sélectionne.
+  const duplicateAnnotation = useCallback((source: Annotation): Annotation => {
+    const copy = {
+      ...source,
+      id: newId(source.type === 'text' ? 'txt' : 'sig'),
+      x: source.x + 14,
+      y: source.y + 14,
+    } as Annotation;
+    setAnnotations((prev) => [...prev, copy]);
+    setSelectedId(copy.id);
+    return copy;
+  }, []);
+
+  // Raccourcis clavier : suppression, copier/coller/dupliquer.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId && !editingId) {
-        const target = e.target as HTMLElement;
-        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
-        setAnnotations((prev) => prev.filter((a) => a.id !== selectedId));
-        setSelectedId(null);
+      const target = e.target as HTMLElement;
+      const typing = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+      if (typing || editingId) return; // ne pas interférer avec la saisie de texte
+      const mod = e.ctrlKey || e.metaKey;
+      const key = e.key.toLowerCase();
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedId) {
+          e.preventDefault();
+          handleDelete();
+        }
+      } else if (mod && key === 'c' && selectedId) {
+        const ann = annotations.find((a) => a.id === selectedId);
+        if (ann) setClipboard(ann);
+      } else if (mod && key === 'v' && clipboard) {
+        e.preventDefault();
+        setClipboard(duplicateAnnotation(clipboard)); // colle en cascade
+      } else if (mod && key === 'd' && selectedId) {
+        e.preventDefault();
+        const ann = annotations.find((a) => a.id === selectedId);
+        if (ann) duplicateAnnotation(ann);
       }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selectedId, editingId]);
+  }, [selectedId, editingId, annotations, clipboard, handleDelete, duplicateAnnotation]);
 
   async function handleExport() {
     if (!originalBytes) return;
@@ -162,6 +200,8 @@ export default function App() {
     setShowSignatureModal(false);
   }
 
+  const selectedAnnotation = annotations.find((a) => a.id === selectedId) ?? null;
+
   return (
     <div className="app">
       <input
@@ -181,6 +221,14 @@ export default function App() {
         hasDocument={!!doc}
         exporting={exporting}
       />
+
+      {selectedAnnotation && !editingId && (
+        <PropertiesBar
+          annotation={selectedAnnotation}
+          onUpdate={handleUpdate}
+          onDelete={handleDelete}
+        />
+      )}
 
       {pendingSignature && (
         <div className="banner">Signature prête — cliquez sur la page pour la placer.</div>
